@@ -2,7 +2,8 @@ const TelegramBot = require('node-telegram-bot-api');
 const request = require('request');
 const cron = require('node-cron');
 const fs = require('fs');
-
+const express = require('express');
+const app = express();
 // Thay YOUR_TELEGRAM_BOT_TOKEN bằng token bot của bạn
 const TOKEN = '7429272887:AAEPoofuO1bgsrCEFLEG7E-gse-Vm-sJEuI';
 const bot = new TelegramBot(TOKEN, { polling: true });
@@ -83,4 +84,12 @@ bot.on('message', (msg) => {
     if (!msg.text.startsWith('/')) {
         bot.sendMessage(msg.chat.id, `Tôi không hiểu lệnh này. Sử dụng /help để xem hướng dẫn.`);
     }
+});
+const PORT = process.env.PORT || 3000; // Render sẽ cung cấp PORT qua biến môi trường
+app.get('/', (req, res) => {
+    res.send('Bot Telegram đang chạy!');
+});
+
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });
