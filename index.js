@@ -31,7 +31,6 @@ function getSystemInfo() {
         uptime: uptimeFormatted,
         cpu_load: os.loadavg()[0].toFixed(2),
         total_ram: `${(os.totalmem() / 1024 / 1024).toFixed(2)} MB`,
-        free_ram: `${(os.freemem() / 1024 / 1024).toFixed(2)} MB`,
         used_ram: `${((os.totalmem() - os.freemem()) / 1024 / 1024).toFixed(2)} MB`,
         session_count: i - 1
     };
@@ -47,10 +46,7 @@ function sendTelegramMessage(text) {
         body: { chat_id: TELEGRAM_CHAT_ID, text: text }
     };
 
-    request(options, (error, response) => {
-        if (error) console.log("[❌] Lỗi gửi Telegram:", error);
-        else console.log("[✅] Đã gửi Telegram:", text);
-    });
+    request(options, () => {});
 }
 
 // Kiểm tra từng URL định kỳ
@@ -59,21 +55,17 @@ data.forEach((url) => {
 
     cron.schedule('*/1 * * * * *', () => { 
         let sessionId = i++;
-        request(url, function(error, response, body) {
+        request(url, function(error, response) {
             if (!error && response.statusCode == 200) {
                 requestStats[url].success++; 
-                let logEntry = {
+                sessionLog.push({
                     session: sessionId,
                     url: url,
                     status: response.statusCode,
-                    response: body.substring(0, 200), 
                     timestamp: moment().format("HH:mm:ss DD/MM/YYYY")
-                };
-                sessionLog.push(logEntry);
-                console.log(logEntry);
+                });
             } else {
-                requestStats[url].fail++; 
-                console.log(`[❌] ${moment().format("HH:mm:ss DD/MM/YYYY")} - Lỗi request: ${url}`);
+                requestStats[url].fail++;
             }
         });
     });
@@ -96,8 +88,6 @@ app.get('/', (req, res) => {
 cron.schedule('*/1 * * * *', () => {
     request(`http://localhost:${port}`, (error, response) => {
         if (!error && response.statusCode == 200) {
-            console.log(`[✅] ${moment().format("HH:mm:ss DD/MM/YYYY")} - Server vẫn hoạt động!`);
-
             let systemInfo = getSystemInfo();
             let message = `✅ [PING] Server hoạt động!\n\n` +
                           `🕒 Thời gian: ${systemInfo.current_time}\n` +
@@ -105,15 +95,10 @@ cron.schedule('*/1 * * * *', () => {
                           `💻 Session: ${systemInfo.session_count}\n` +
                           `⚡ CPU Load: ${systemInfo.cpu_load}\n` +
                           `💾 RAM: ${systemInfo.used_ram} / ${systemInfo.total_ram}`;
-
             sendTelegramMessage(message);
-        } else {
-            console.log(`[❌] ${moment().format("HH:mm:ss DD/MM/YYYY")} - Lỗi ping server!`);
         }
     });
 });
 
 // Chạy server
-app.listen(port, () => {
-    console.log(`🚀 Server đang chạy tại http://localhost:${port}`);
-});
+app.listen(port);
